@@ -1,23 +1,22 @@
 import sys
 
-import graphene
 from flask import Flask
-from flask_graphql import GraphQLView
+import magql
+from flask_magql import MagqlExtension
 
-PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 9000
+schema = magql.Schema()
 
+@schema.query.field(
+    "greet", "String!", args={"name": magql.Argument("String!", default="World")}
+)
+def resolve_greet(parent, info, **kwargs):
+    name = kwargs.pop("name")
+    return f"Hello, {name}!"
 
-class Query(graphene.ObjectType):
-    hello = graphene.String(name=graphene.Argument(graphene.String, default_value="World"))
+magql_ext = MagqlExtension(schema)
 
-    def resolve_hello(self, info, name):
-        return f'Hello {name}!'
+app = Flask(__name__)
+app.config["DEBUG"] = True
+magql_ext.init_app(app)
+app.run(host="0.0.0.0", port=sys.argv[1])
 
-
-schema = graphene.Schema(query=Query)
-
-if __name__ == '__main__':
-    app = Flask(__name__)
-    app.config["DEBUG"] = True
-    app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=schema, graphiql=True))
-    app.run(host="0.0.0.0", port=PORT)

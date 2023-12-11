@@ -8,6 +8,7 @@ This is to be used for the 2nd project in Systems Integration course from Inform
 ### How to I setup my development environment? ###
 
 * Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+* Create an _.env_ file in the root folder of this codebase
 * Create the necessary Docker Images and Containers by running the following command in the project's root folder:
 ```
 docker-compose up --build -d
@@ -45,8 +46,8 @@ docker-compose start
 
 #### Python + node.js ####
 
-* Python 3.9.15, with pip
-* node.js 18 + nodemon (that can be used to easily reload apps)
+* Python with pip
+* node.js + nodemon (that can be used to easily reload apps)
 * You can add additional pre-installed packages to the **_requirements.txt_** file. Remember that if you add any dependency, you will have to rebuild the Docker images again.
 * The entrypoint of the container is the bash script named **run.sh**.
 * You can easily use this python environment by opening up a terminal with the following command.
@@ -114,5 +115,5 @@ Place where we can drop CSVs to be imported by the system.
 Generic volume that can be used for any purpose, to help out developing the other containers.
 
 ___
-#### _Informatics Engineering @ipvc/estg, 2022-2023_ ####
+#### _Informatics Engineering @ipvc/estg, 2023-2024_ ####
 ###### _Professors: Jorge Ribeiro and Luís Teófilo_ ######

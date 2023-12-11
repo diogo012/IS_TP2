@@ -5,7 +5,7 @@ services:
   # Database to store XML data
   db-xml:
     container_name: db-xml
-    build: images/db/xml
+    build: docker/images/db/xml
     volumes:
       - xml-data:/var/lib/postgresql/shared-data/
     ports:
@@ -14,7 +14,7 @@ services:
   # Database to store Relational data
   db-rel:
     container_name: db-rel
-    build: images/db/rel
+    build: docker/images/db/rel
     volumes:
       - rel-data:/var/lib/postgresql/shared-data/
     ports:
@@ -23,23 +23,24 @@ services:
   # Container that automatically converts CSV to XML and then imports the XML to db-xml
   importer:
     container_name: importer
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/daemon/importer:/usr/src/app
-      - ./volumes/shared:/shared
-      - ./volumes/csv:/csv
+      - ./docker/volumes/xml:/xml
+      - ./docker/volumes/csv:/csv
     environment:
       USE_DEV_MODE: ${USE_DEV_MODE}
+      NUM_XML_PARTS: ${NUM_XML_PARTS}
     depends_on:
       - db-xml
 
   # Container that automatically migrates data from db-xml to db-rel
   migrator:
     container_name: migrator
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/daemon/migrator:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     environment:
       USE_DEV_MODE: ${USE_DEV_MODE}
       POLLING_FREQ: ${POLLING_FREQ}
@@ -50,10 +51,10 @@ services:
   # Container that automatically migrates data from db-xml to db-rel
   gis-updater:
     container_name: gis-updater
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/daemon/gis-updater:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     environment:
       USE_DEV_MODE: ${USE_DEV_MODE}
       POLLING_FREQ: ${POLLING_FREQ}
@@ -65,10 +66,10 @@ services:
   # Container that runs the RPC server
   rpc-server:
     container_name: rpc-server
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/server/rpc:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     environment:
       USE_DEV_MODE: ${USE_DEV_MODE}
       RPC_SERVER_PORT: ${RPC_SERVER_PORT}
@@ -78,10 +79,10 @@ services:
   # Container that runs the web interface for displaying entities
   frontend-ent:
     container_name: frontend-ent
-    build: images/web
+    build: docker/images/web
     volumes:
       - ./src/frontend/ent:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_FRONTEND_ENT}:${EXT_PORT_FRONTEND_ENT}"
     environment:
@@ -94,10 +95,10 @@ services:
   # Container that runs the web interface for displaying the map
   frontend-gis:
     container_name: frontend-gis
-    build: images/web
+    build: docker/images/web
     volumes:
       - ./src/frontend/gis:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_FRONTEND_GIS}:${EXT_PORT_FRONTEND_GIS}"
     environment:
@@ -110,10 +111,10 @@ services:
   # Container that runs the web interface for displaying the map
   frontend-proc:
     container_name: frontend-proc
-    build: images/web
+    build: docker/images/web
     volumes:
       - ./src/frontend/proc:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_FRONTEND_PROC}:${EXT_PORT_FRONTEND_PROC}"
     environment:
@@ -128,22 +129,24 @@ services:
   # Container that runs the API for entities
   api-entities:
     container_name: api-entities
-    build: images/python
+    build: docker/images/javascript
     volumes:
       - ./src/api/entities:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_API_ENTITIES}:${API_PORT}"
     environment:
-      API_PORT: ${API_PORT}
+      USE_DEV_MODE: ${USE_DEV_MODE}
+      PORT: ${API_PORT}
+      DATABASE_URL: postgresql://is:is@db-rel:5432/is?schema=public
 
   # Container that runs the API for gis
   api-gis:
     container_name: api-gis
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/api/gis:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_API_GIS}:${API_PORT}"
     environment:
@@ -152,10 +155,10 @@ services:
   # Container that runs the API for procedures
   api-proc:
     container_name: api-proc
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/api/proc:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_API_PROC}:${API_PORT}"
     environment:
@@ -164,14 +167,50 @@ services:
   # Container that runs the API for graphql
   api-graphql:
     container_name: api-graphql
-    build: images/python
+    build: docker/images/python
     volumes:
       - ./src/api/graphql:/usr/src/app
-      - ./volumes/shared:/shared
+      - ./docker/volumes/xml:/xml
     ports:
       - "${EXT_PORT_API_GRAPHQL}:${API_PORT}"
     environment:
       API_PORT: ${API_PORT}
+
+  # Container that runs a golang exmaple
+  golang-example:
+    container_name: golang-example
+    build: docker/images/golang
+    volumes:
+      - ./src/examples/golang:/usr/src/app
+      - ./docker/volumes/xml:/xml
+    environment:
+      USE_DEV_MODE: ${USE_DEV_MODE}
+
+  # Container that runs a elixir exmaple
+  elixir-example:
+    container_name: elixir-example
+    build: docker/images/elixir
+    volumes:
+      - ./src/examples/elixir:/usr/src/app
+      - ./docker/volumes/xml:/xml
+    environment:
+      USE_DEV_MODE: ${USE_DEV_MODE}
+
+  broker:
+    container_name: rabbitmq
+    image: "rabbitmq:3.12.9-management-alpine"
+    environment:
+      RABBITMQ_DEFAULT_USER: "$RABBITMQ_DEFAULT_USER"
+      RABBITMQ_DEFAULT_PASS: "$RABBITMQ_DEFAULT_PASS"
+      RABBITMQ_DEFAULT_VHOST: "$RABBITMQ_DEFAULT_VHOST"
+    ports:
+      - "5672:5672"   # AMQP protocol port
+      - "15672:15672" # management interface port
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping", "-q" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   xml-data:

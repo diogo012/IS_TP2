@@ -61,7 +61,7 @@ class CSVHandler(FileSystemEventHandler):
 if __name__ == "__main__":
 
     CSV_INPUT_PATH = "/csv"
-    XML_OUTPUT_PATH = "/shared/output"
+    XML_OUTPUT_PATH = "/xml"
 
     # create the file observer
     observer = Observer()
