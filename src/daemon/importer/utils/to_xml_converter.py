@@ -20,7 +20,7 @@ class CSVtoXMLConverter:
             builder=lambda row: Country(row["nationality"])
         )
 
-        # read teams
+        # read top_teams
         teams = self._reader.read_entities(
             attr="Current Club",
             builder=lambda row: Team(row["Current Club"])

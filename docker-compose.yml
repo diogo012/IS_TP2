@@ -82,7 +82,8 @@ services:
     build: docker/images/web
     volumes:
       - ./src/frontend/ent:/usr/src/app
-      - ./docker/volumes/xml:/xml
+      - ./src/frontend/_shared/components:/usr/src/app/components
+      - ./src/frontend/_shared/public:/usr/src/app/public
     ports:
       - "${EXT_PORT_FRONTEND_ENT}:${EXT_PORT_FRONTEND_ENT}"
     environment:
@@ -98,7 +99,8 @@ services:
     build: docker/images/web
     volumes:
       - ./src/frontend/gis:/usr/src/app
-      - ./docker/volumes/xml:/xml
+      - ./src/frontend/_shared/components:/usr/src/app/components
+      - ./src/frontend/_shared/public:/usr/src/app/public
     ports:
       - "${EXT_PORT_FRONTEND_GIS}:${EXT_PORT_FRONTEND_GIS}"
     environment:
@@ -114,7 +116,8 @@ services:
     build: docker/images/web
     volumes:
       - ./src/frontend/proc:/usr/src/app
-      - ./docker/volumes/xml:/xml
+      - ./src/frontend/_shared/components:/usr/src/app/components
+      - ./src/frontend/_shared/public:/usr/src/app/public
     ports:
       - "${EXT_PORT_FRONTEND_PROC}:${EXT_PORT_FRONTEND_PROC}"
     environment:
