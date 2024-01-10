@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 
 	_ "github.com/lib/pq"  // Importação do driver PostgreSQL
-	"github.com/streadway/amqp"
+	//"github.com/streadway/amqp"
 
 )
 
@@ -36,25 +36,25 @@ func connection() {
 		fmt.Println("Connection successful!")
 	}
 
-	// Loop infinito para verificar novos arquivos a cada minuto
+	// Loop infinito para verificar novas entidades a cada minuto
 	for {
-		// Verificar novos arquivos XML
-		newFiles, err := getUnprocessedFiles(db)
+		// Verificar novas entidades XML
+		newEntities, err := getUnprocessedEntities(db)
 		if err != nil {
-			log.Println("Erro ao obter novos arquivos:", err)
+			log.Println("Erro ao obter novas entidades:", err)
 		}
 
-		// Processar novos arquivos
-		for _, fileName := range newFiles {
-			fmt.Printf("Novo arquivo encontrado: %s\n", fileName)
+		// Processar novas entidades
+		for _, EntitiesName := range newEntities {
+			fmt.Printf("Nova entidade encontrada: %s\n", EntitiesName)
 
-			// Verificar se o arquivo já foi processado
-			if isProcessed(fileName) {
-				fmt.Printf("Arquivo já foi encontrado anteriormente: %s\n", fileName)
+			// Verificar se a entidade já foi processado
+			if isProcessed(EntitiesName) {
+				fmt.Printf("Entidade já foi encontrado anteriormente: %s\n", EntitiesName)
 			} else {
 				// Gerar mensagem para o serviço broker (substitua isso com sua lógica real)
 				// Aqui você pode adicionar uma tarefa de importação para cada entidade, por exemplo
-				generateTaskForBroker(fileName)
+				generateTaskForBroker(EntitiesName)
 			}
 		}
 
@@ -64,11 +64,11 @@ func connection() {
 }
 
 // Exemplo de consulta ao banco de dados para obter arquivos não processados
-func getUnprocessedFiles(db *sql.DB) ([]string, error) {
+func getUnprocessedEntities(db *sql.DB) ([]string, error) {
 	var files []string
 
 	// Consulta para obter arquivos não processados
-	rows, err := db.Query("SELECT file_name FROM public.imported_documents WHERE deleted_on IS NULL")
+	rows, err := db.Query("SELECT unnest(xpath('/Jobs/JobPortals/JobPortal', xml)) AS job_attributes FROM public.imported_documents;")
 	if err != nil {
 		return nil, err
 	}
@@ -76,19 +76,19 @@ func getUnprocessedFiles(db *sql.DB) ([]string, error) {
 
 	// Processar resultados
 	for rows.Next() {
-		var fileName string
-		if err := rows.Scan(&fileName); err != nil {
+		var EntitiesName string
+		if err := rows.Scan(&EntitiesName); err != nil {
 			return nil, err
 		}
-		files = append(files, fileName)
+		files = append(files, EntitiesName)
 	}
 
 	return files, nil
 }
 
 // Função para gerar tarefa para o serviço broker (substitua isso com sua lógica real)
-func generateTaskForBroker(fileName string) {
-	// Conectar ao servidor RabbitMQ
+func generateTaskForBroker(EntitiesName string) {
+	/* // Conectar ao servidor RabbitMQ
 	conn, err := amqp.Dial("amqp://is:is@rabbitmq:5672/is")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
@@ -104,7 +104,7 @@ func generateTaskForBroker(fileName string) {
 
 	// Declarar uma fila
 	q, err := ch.QueueDeclare(
-		"queue_name", // Nome da fila
+		"queue_migrator", // Nome da fila
 		false,        // Durable
 		false,        // Delete when unused
 		false,        // Exclusive
@@ -123,18 +123,18 @@ func generateTaskForBroker(fileName string) {
 		false,  // Immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte(fileName),
+			Body:        []byte(EntitiesName),
 		})
 	if err != nil {
 		log.Fatalf("Failed to publish a message: %v", err)
 	}
-
-	fmt.Printf("Mensagem enviada para o serviço broker: %s\n", fileName)
+ */
+	fmt.Printf("Mensagem enviada para o serviço broker")
 }
 
 // Função para verificar novos arquivos no diretório XML
-func checkForNewFiles() ([]string, error) {
-	var newFiles []string
+func checkFornewEntities() ([]string, error) {
+	var newEntities []string
 
 	// Listar todos os arquivos no diretório XML
 	files, err := ioutil.ReadDir(xmlDir)
@@ -147,19 +147,19 @@ func checkForNewFiles() ([]string, error) {
 		if file.IsDir() {
 			continue
 		}
-		fileName := file.Name()
+		EntitiesName := file.Name()
 
 		// Verificar se o arquivo não está na lista de arquivos processados no banco de dados
-		if !isProcessed(fileName) {
-			newFiles = append(newFiles, filepath.Join(xmlDir, fileName))
+		if !isProcessed(EntitiesName) {
+			newEntities = append(newEntities, filepath.Join(xmlDir, EntitiesName))
 		}
 	}
 
-	return newFiles, nil
+	return newEntities, nil
 }
 
 // Função para verificar se um arquivo já foi processado com base no banco de dados
-func isProcessed(fileName string) bool {
+func isProcessed(EntitiesName string) bool {
 	// Sua lógica para verificar se o arquivo já foi processado
 	// Consulte o banco de dados ou outra fonte de informação
 	// Retorne verdadeiro se o arquivo já foi processado, falso caso contrário
