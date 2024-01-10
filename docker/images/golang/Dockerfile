@@ -1,4 +1,4 @@
-FROM golang:1.21.5-alpine3.19
+FROM golang:1.21.6-alpine3.19
 
 WORKDIR /usr/src/app
 
@@ -11,8 +11,9 @@ RUN npm update npm -g
 RUN npm install nodemon -g
 
 # Install Go dependencies
-COPY go.mod .
-COPY go.sum .
+COPY ../../src/examples/golang/go.mod .
+COPY ../../src/examples/golang/go.sum .
 RUN go mod download
+
 
 ENTRYPOINT (sed -i 's/\r$//' ./run.sh) ; (chmod +x ./run.sh) ; ./run.sh
