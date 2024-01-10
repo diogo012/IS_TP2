@@ -11,7 +11,8 @@ RUN npm update npm -g
 RUN npm install nodemon -g
 
 # Install Go dependencies
-COPY go.* ./
+COPY go.mod ./
+COPY go.sum ./
 RUN go mod download
 
 
