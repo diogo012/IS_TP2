@@ -1,1 +1,1 @@
-docker run --name my-pgadmin-tp2 --network=is_tp2_default -p 15433:80 -e PGADMIN_DEFAULT_EMAIL=diogo@gmail.com -e PGADMIN_DEFAULT_PASSWORD=diogo -d dpage/pgadmin4
+docker run --name my-pgadmin-tp2 --network=is_tp2_default -p 15433:80 -e PGADMIN_DEFAULT_EMAIL=diogotp2@gmail.com -e PGADMIN_DEFAULT_PASSWORD=diogotp2 -d dpage/pgadmin4

@@ -4,41 +4,18 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	/* "os"
 	"path/filepath"
-	"strings"
 	"time"
-	"io/ioutil" */
+	"io/ioutil"
+
 	_ "github.com/lib/pq"  // Importação do driver PostgreSQL
+	"github.com/streadway/amqp"
+
 )
-
-/* func sayHelloWorld() {
-	fmt.Println("Hello, World!!")
-}
-
-func listXMLFiles() {
-	files, err := ioutil.ReadDir("/xml")
-	if err != nil {
-		fmt.Printf("Error accessing /xml: %s\n", err)
-		return
-	}
-
-	fmt.Println("Listing all available XML files!")
-	for _, f := range files {
-		if strings.HasSuffix(f.Name(), ".xml") {
-			fmt.Printf("\t> %s\n", f.Name())
-		}
-	}
-}
-
-func main() {
-	sayHelloWorld()
-	listXMLFiles()
-} */
 
 
 // Configuração da string de conexão
-const connStr = "user=is password=is dbname=is sslmode=disable"
+const connStr = "user=is password=is dbname=is sslmode=disable host=db-xml port=5432"
 
 // Diretório de arquivos XML
 const xmlDir = "/xml"
@@ -51,9 +28,6 @@ func connection() {
 	}
 	defer db.Close()
 
-	// Mensagem de log antes do Ping
-	fmt.Println("Before Ping")
-
 	// Verificar se a conexão está funcionando
 	err = db.Ping()
 	if err != nil {
@@ -61,15 +35,8 @@ func connection() {
 	} else {
 		fmt.Println("Connection successful!")
 	}
-}
 
-func main() {
-
-	
-	connection()
-}
-
-	/* // Loop infinito para verificar novos arquivos a cada minuto
+	// Loop infinito para verificar novos arquivos a cada minuto
 	for {
 		// Verificar novos arquivos XML
 		newFiles, err := getUnprocessedFiles(db)
@@ -81,17 +48,22 @@ func main() {
 		for _, fileName := range newFiles {
 			fmt.Printf("Novo arquivo encontrado: %s\n", fileName)
 
-			// Gerar mensagem para o serviço broker (substitua isso com sua lógica real)
-			// Aqui você pode adicionar uma tarefa de importação para cada entidade, por exemplo
-			generateTaskForBroker(fileName)
+			// Verificar se o arquivo já foi processado
+			if isProcessed(fileName) {
+				fmt.Printf("Arquivo já foi encontrado anteriormente: %s\n", fileName)
+			} else {
+				// Gerar mensagem para o serviço broker (substitua isso com sua lógica real)
+				// Aqui você pode adicionar uma tarefa de importação para cada entidade, por exemplo
+				generateTaskForBroker(fileName)
+			}
 		}
 
 		// Aguardar por 1 minuto antes de verificar novamente
-		time.Sleep(time.Minute)
-	} */
+		time.Sleep(10 * time.Minute)
+	}
+}
 
-
-/* // Exemplo de consulta ao banco de dados para obter arquivos não processados
+// Exemplo de consulta ao banco de dados para obter arquivos não processados
 func getUnprocessedFiles(db *sql.DB) ([]string, error) {
 	var files []string
 
@@ -116,9 +88,48 @@ func getUnprocessedFiles(db *sql.DB) ([]string, error) {
 
 // Função para gerar tarefa para o serviço broker (substitua isso com sua lógica real)
 func generateTaskForBroker(fileName string) {
-	// Aqui você pode implementar a lógica para gerar mensagens para o serviço broker
-	// Substitua este exemplo com sua lógica real
-	fmt.Printf("Gerar mensagem para o serviço broker: %s\n", fileName)
+	// Conectar ao servidor RabbitMQ
+	conn, err := amqp.Dial("amqp://is:is@rabbitmq:5672/is")
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer conn.Close()
+
+	// Criar um canal
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Failed to open a channel: %v", err)
+	}
+	defer ch.Close()
+
+	// Declarar uma fila
+	q, err := ch.QueueDeclare(
+		"queue_name", // Nome da fila
+		false,        // Durable
+		false,        // Delete when unused
+		false,        // Exclusive
+		false,        // No-wait
+		nil,          // Arguments
+	)
+	if err != nil {
+		log.Fatalf("Failed to declare a queue: %v", err)
+	}
+
+	// Publicar uma mensagem na fila
+	err = ch.Publish(
+		"",     // Exchange
+		q.Name, // Key
+		false,  // Mandatory
+		false,  // Immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(fileName),
+		})
+	if err != nil {
+		log.Fatalf("Failed to publish a message: %v", err)
+	}
+
+	fmt.Printf("Mensagem enviada para o serviço broker: %s\n", fileName)
 }
 
 // Função para verificar novos arquivos no diretório XML
@@ -152,5 +163,9 @@ func isProcessed(fileName string) bool {
 	// Sua lógica para verificar se o arquivo já foi processado
 	// Consulte o banco de dados ou outra fonte de informação
 	// Retorne verdadeiro se o arquivo já foi processado, falso caso contrário
-	return false 
-} */
+	return false
+}
+
+func main() {
+	connection()
+}

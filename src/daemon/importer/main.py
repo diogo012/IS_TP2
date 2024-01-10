@@ -112,15 +112,16 @@ class CSVHandler(FileSystemEventHandler):
                 try:
                     # Read XML file
                     xml_content = read_xml_file(xml_path)
+                    xml_name = os.path.basename(xml_path)
             
                     # Insert XML into the database
                     cursor.execute("INSERT INTO public.imported_documents (file_name, xml) VALUES (%s, %s) RETURNING id;",
-                                ('jobdescriptions.xml', xml_content))
+                                (xml_name, xml_content))
                     
                     # Commit the transaction
                     connection.commit()
 
-                    print("XML file added to the imported_documents table.")
+                    print("XML file added to the imported_documents table: %s" % xml_name)
 
                 except (Exception, psycopg2.Error) as error:
                     print("Failed to insert data", error)

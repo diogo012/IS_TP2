@@ -10,10 +10,7 @@ RUN apk add --update nodejs npm
 RUN npm update npm -g
 RUN npm install nodemon -g
 
-# Install Go dependencies
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+
 
 
 ENTRYPOINT (sed -i 's/\r$//' ./run.sh) ; (chmod +x ./run.sh) ; ./run.sh
