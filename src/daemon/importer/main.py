@@ -1,6 +1,9 @@
 import asyncio
 import time
 import uuid
+import psycopg2
+from psycopg2.extras import execute_values
+from datetime import datetime
 
 import os
 from watchdog.observers import Observer
@@ -19,6 +22,35 @@ def convert_csv_to_xml(in_path, out_path):
     converter = CSVtoXMLConverter(in_path)
     file = open(out_path, "w")
     file.write(converter.to_xml_str())
+
+# Function to connect to db
+def connect_to_database():
+    try:
+        connection = psycopg2.connect(user="is", 
+                                    password="is", 
+                                    host="db-xml", 
+                                    port="5432", 
+                                    database="is")
+        cursor = connection.cursor()
+        return connection, cursor
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error connecting to the database:", error)
+        return None, None
+            
+# Function to read XML file
+def read_xml_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        xml_content = file.read()
+    return xml_content
+        
+# Function to get file size
+def get_file_size(file_path):
+    try:
+        return os.path.getsize(file_path)
+    except Exception as e:
+        print(f"Error getting file size: {e}")
+        return None
 
 class CSVHandler(FileSystemEventHandler):
     def __init__(self, input_path, output_path):
@@ -43,14 +75,103 @@ class CSVHandler(FileSystemEventHandler):
         xml_path = generate_unique_file_name(self._output_path)
 
         # we do the conversion
-        # !TODO: once the conversion is done, we should updated the converted_documents tables
         convert_csv_to_xml(csv_path, xml_path)
         print(f"new xml file generated: '{xml_path}'")
+        
+        # !TODO: once the conversion is done, we should updated the converted_documents tables
+        def insert_xml_into_converted_documents(csv_path, xml_path):
+            connection, cursor = connect_to_database()
+
+            if connection and cursor:
+                try:
+                    # Get the file size
+                    file_size = get_file_size(xml_path)
+                    
+                    # Insert XML into the database
+                    cursor.execute("INSERT INTO public.converted_documents (src, file_size, dst) VALUES (%s, %s, %s) RETURNING id;",
+                                (csv_path, file_size, xml_path))
+                    
+                    # Commit the transaction
+                    connection.commit()
+
+                    print("File added to the converted_documents tables.")
+
+                except (Exception, psycopg2.Error) as error:
+                    print("Failed to insert data", error)
+
+                finally:
+                    if connection:
+                        cursor.close()
+                        connection.close()
 
         # !TODO: we should store the XML document into the imported_documents table
+        def insert_xml_into_imported_documents(xml_path):
+            connection, cursor = connect_to_database()
+
+            if connection and cursor:
+                try:
+                    # Read XML file
+                    xml_content = read_xml_file(xml_path)
+            
+                    # Insert XML into the database
+                    cursor.execute("INSERT INTO public.imported_documents (file_name, xml) VALUES (%s, %s) RETURNING id;",
+                                ('jobdescriptions.xml', xml_content))
+                    
+                    # Commit the transaction
+                    connection.commit()
+
+                    print("XML file added to the imported_documents table.")
+
+                except (Exception, psycopg2.Error) as error:
+                    print("Failed to insert data", error)
+
+                finally:
+                    if connection:
+                        cursor.close()
+                        connection.close()
+             
+        # Call the insert functions
+        insert_xml_into_converted_documents(csv_path, xml_path)                
+        insert_xml_into_imported_documents(xml_path)
+        
+        #Soft delete
+        """ def soft_delete(xml_path):
+            connection, cursor = connect_to_database()
+            deleted_on_value = datetime.now()
+
+            try:
+                cursor.execute("UPDATE imported_documents SET deleted_on = %s  WHERE file_name = %s", (deleted_on_value, 'jobdescriptions.xml'))
+                connection.commit()
+                return True
+            except Exception as e:
+                print(f"Error: {e}")
+                connection.rollback()
+            finally:
+                cursor.close()
+                connection.close() """
 
     async def get_converted_files(self):
         # !TODO: you should retrieve from the database the files that were already converted before
+        connection, cursor = connect_to_database()
+
+        try:
+            if connection and cursor:
+                # Query the database to retrieve files that have already been converted
+                cursor.execute("SELECT src FROM public.converted_documents")
+                converted_files = [record[0] for record in cursor.fetchall()]
+
+                print("Converted Files:", converted_files)
+                
+                return converted_files
+                
+        except (Exception, psycopg2.Error) as error:
+            print("Error fetching converted files from the database:", error)
+
+        finally:
+            if connection:
+                cursor.close()
+                connection.close()
+
         return []
 
     def on_created(self, event):
