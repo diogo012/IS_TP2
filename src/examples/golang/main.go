@@ -3,16 +3,15 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"path/filepath"
 	"time"
-	"io/ioutil"
 
-	_ "github.com/lib/pq"  // Importação do driver PostgreSQL
+	_ "github.com/lib/pq" // Importação do driver PostgreSQL
+	"github.com/streadway/amqp"
 	//"github.com/streadway/amqp"
-
 )
-
 
 // Configuração da string de conexão
 const connStr = "user=is password=is dbname=is sslmode=disable host=db-xml port=5432"
@@ -63,11 +62,11 @@ func connection() {
 	}
 }
 
-// Exemplo de consulta ao banco de dados para obter arquivos não processados
+// Exemplo de consulta ao banco de dados para obter entidades não processados
 func getUnprocessedEntities(db *sql.DB) ([]string, error) {
 	var files []string
 
-	// Consulta para obter arquivos não processados
+	// Consulta para obter entidades não processados
 	rows, err := db.Query("SELECT unnest(xpath('/Jobs/JobPortals/JobPortal', xml)) AS job_attributes FROM public.imported_documents;")
 	if err != nil {
 		return nil, err
@@ -88,7 +87,7 @@ func getUnprocessedEntities(db *sql.DB) ([]string, error) {
 
 // Função para gerar tarefa para o serviço broker (substitua isso com sua lógica real)
 func generateTaskForBroker(EntitiesName string) {
-	/* // Conectar ao servidor RabbitMQ
+	// Conectar ao servidor RabbitMQ
 	conn, err := amqp.Dial("amqp://is:is@rabbitmq:5672/is")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
@@ -105,11 +104,11 @@ func generateTaskForBroker(EntitiesName string) {
 	// Declarar uma fila
 	q, err := ch.QueueDeclare(
 		"queue_migrator", // Nome da fila
-		false,        // Durable
-		false,        // Delete when unused
-		false,        // Exclusive
-		false,        // No-wait
-		nil,          // Arguments
+		false,            // Durable
+		false,            // Delete when unused
+		false,            // Exclusive
+		false,            // No-wait
+		nil,              // Arguments
 	)
 	if err != nil {
 		log.Fatalf("Failed to declare a queue: %v", err)
@@ -128,8 +127,8 @@ func generateTaskForBroker(EntitiesName string) {
 	if err != nil {
 		log.Fatalf("Failed to publish a message: %v", err)
 	}
- */
-	fmt.Printf("Mensagem enviada para o serviço broker")
+
+	fmt.Printf("Mensagem enviada para o serviço broker \n")
 }
 
 // Função para verificar novos arquivos no diretório XML
