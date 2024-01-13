@@ -3,9 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"path/filepath"
 	"time"
 
 	_ "github.com/lib/pq" // Importação do driver PostgreSQL
@@ -15,9 +13,6 @@ import (
 
 // Configuração da string de conexão
 const connStr = "user=is password=is dbname=is sslmode=disable host=db-xml port=5432"
-
-// Diretório de arquivos XML
-const xmlDir = "/xml"
 
 func connection() {
 	// Abrir a conexão com o banco de dados
@@ -48,7 +43,7 @@ func connection() {
 			fmt.Printf("Nova entidade encontrada: %s\n", EntitiesName)
 
 			// Verificar se a entidade já foi processado
-			if isProcessed(EntitiesName) {
+			if isProcessed(db, EntitiesName) {
 				fmt.Printf("Entidade já foi encontrado anteriormente: %s\n", EntitiesName)
 			} else {
 				// Gerar mensagem para o serviço broker (substitua isso com sua lógica real)
@@ -58,7 +53,7 @@ func connection() {
 		}
 
 		// Aguardar por 1 minuto antes de verificar novamente
-		time.Sleep(10 * time.Minute)
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -131,38 +126,18 @@ func generateTaskForBroker(EntitiesName string) {
 	fmt.Printf("Mensagem enviada para o serviço broker \n")
 }
 
-// Função para verificar novos arquivos no diretório XML
-func checkFornewEntities() ([]string, error) {
-	var newEntities []string
-
-	// Listar todos os arquivos no diretório XML
-	files, err := ioutil.ReadDir(xmlDir)
+// Função para verificar se uma entidade já foi processada com base no banco de dados
+func isProcessed(db *sql.DB, EntitiesName string) bool {
+	// Consulta SQL para verificar se a entidade já existe na tabela
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM public.imported_documents WHERE unnest(xpath('/Jobs/JobPortals/JobPortal', xml)) = $1)", EntitiesName).Scan(&exists)
 	if err != nil {
-		return nil, err
+		log.Printf("Erro ao verificar se a entidade já foi processada: %v", err)
+		return false
 	}
 
-	// Verificar se há novos arquivos
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		EntitiesName := file.Name()
-
-		// Verificar se o arquivo não está na lista de arquivos processados no banco de dados
-		if !isProcessed(EntitiesName) {
-			newEntities = append(newEntities, filepath.Join(xmlDir, EntitiesName))
-		}
-	}
-
-	return newEntities, nil
-}
-
-// Função para verificar se um arquivo já foi processado com base no banco de dados
-func isProcessed(EntitiesName string) bool {
-	// Sua lógica para verificar se o arquivo já foi processado
-	// Consulte o banco de dados ou outra fonte de informação
-	// Retorne verdadeiro se o arquivo já foi processado, falso caso contrário
-	return false
+	//A entidade existe na tabela (já foi processada)
+	return exists
 }
 
 func main() {
