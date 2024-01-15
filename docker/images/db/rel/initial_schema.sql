@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS POSTGIS;
 CREATE EXTENSION IF NOT EXISTS POSTGIS_TOPOLOGY;
 
-CREATE TABLE public.teams (
+/* CREATE TABLE public.teams (
 	id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
 	name            VARCHAR(250) NOT NULL,
 	created_on      TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -46,7 +46,7 @@ CREATE TABLE public.teachers (
 );
 
 INSERT INTO teachers(name, city) VALUES('Luís Teófilo', 'Porto');
-INSERT INTO teachers(name, city) VALUES('Ricardo Castro', 'Braga');
+INSERT INTO teachers(name, city) VALUES('Ricardo Castro', 'Braga'); */
 
 
 CREATE TABLE public.countries (
